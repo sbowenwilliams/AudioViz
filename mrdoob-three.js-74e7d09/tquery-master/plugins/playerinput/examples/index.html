@@ -1,0 +1,53 @@
+<!doctype html><title>Minimal tQuery Page</title>
+<script src="../../../build/tquery-bundle-require.js"></script>
+
+<script src='../tquery.playerinput.js'></script>
+<script src='../tquery.playerinput.viewer.js'></script>
+
+<script src="../../../vendor/threex/THREEx.KeyboardState.js"></script>
+<script src="../../keyboard/tquery.keyboard.js"></script>
+<script src='../tquery.playerinput.keyboard.js'></script>
+
+<script src='../../virtualjoystick/vendor/virtualjoystick.js'></script>
+<script src='../tquery.playerinput.virtualjoystick.js'></script>
+
+<script src="../../../vendor/threex/THREEx.DeviceOrientationState.js"></script>
+<script src="../../deviceorientation/tquery.deviceorientation.js"></script>
+<script src="../tquery.playerinput.deviceorientation.js"></script>
+
+<body>
+<pre id='debug' style='position: absolute; left: 0px; top: 0px; margin: 0px;'></pre>
+<script>
+	var world	= tQuery.createWorld().boilerplate().start();
+	var object	= tQuery.createTorusKnot().addTo(world);
+
+	world.removeCameraControls();
+
+	var onMobile	= 'ontouchstart' in window ? true : false;
+	var playerInput	= tQuery.createPlayerInput();
+	//onMobile === true	&& 
+	tQuery.PlayerInput.createVirtualJoystick({
+		playerInput	: playerInput,
+		virtualJoystick	: {	// just to get mouseSupport - it helps debug
+			container	: document.body,
+			mouseSupport	: true
+		}
+	})
+	//onMobile === false 	&& 
+	tQuery.PlayerInput.createKeyboard(playerInput)
+	//true 	&& 
+	tQuery.PlayerInput.createDeviceOrientation(playerInput)
+
+	tQuery.PlayerInput.createViewer({
+		querySelector	: '#debug',
+		playerInput	: playerInput	
+	})
+	
+	world.hook(function(delta, now){
+		var displacement	= 1 * delta;
+		if( playerInput.up )	object.translateZ(-displacement)
+		if( playerInput.down )	object.translateZ( displacement)
+		if( playerInput.left )	object.translateX(-displacement)
+		if( playerInput.right )	object.translateX( displacement)
+	});
+</script></body>

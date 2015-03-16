@@ -1,0 +1,19 @@
+<!doctype html><title>Minimal tQuery Page</title>
+<script src="../../../build/tquery-bundle.js"></script>
+<script src="./genericloader.js"></script>
+<body><script>
+	var world	= tQuery.createWorld().boilerplate().start();
+	var object	= tQuery.createTorus().addTo(world);
+
+	var url		= "./modelgeneric.bin"
+	var loader	= new GenericLoader(url, function(tGeometry){
+		console.log('dddd', tGeometry)
+		//var material	= new THREE.MeshNormalMaterial();
+		var tMaterial	= new THREE.MeshBasicMaterial({
+			color	: 0xffffff,
+			map	: THREE.ImageUtils.loadTexture( "../../assets/images/ash_uvgrid01.jpg" )
+		});
+		var tMesh	= new THREE.Mesh(tGeometry, tMaterial);
+		world.add(tMesh);
+	})
+</script></body>

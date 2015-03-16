@@ -1,0 +1,28 @@
+# how can i avoid maintaining threex and this ?
+
+* some funky animation plugins
+  * displacement
+  * all what is visual
+  * tQuery.fx.siren.js
+  * tQuery.fx.cloud.js
+
+# webstuff
+* do a www.* site on www.tquery.org
+* do ghpage === docs/
+* do blog.* later
+* read about comparison between jQuery/dojo/mootools etc...
+  * learn from it
+* TODO learning webgl example in tQuery
+  * like philogl
+  * http://www.senchalabs.org/philogl/demos.html
+  
+  
+# establish relation between tquery and threex
+* can i maintained both ?
+* do i need to maintinaed both ?
+* lots need to be determined
+* maybe some predefeined fct names could help:
+  * onRender for example. May be exported to other events
+* ctor param?
+* tunable value ?
+* you can change threex too to adapt too
