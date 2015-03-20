@@ -1,0 +1,28 @@
+<!doctype html><title>Minimal tQuery Page</title>
+<script src="../../../build/tquery-bundle-require.js"></script>
+
+<script src="../vendor/machinejs/base.js"></script>
+<script src="../vendor/machinejs/machine.js"></script>
+<script src="../vendor/machinejs/demo.js"></script>
+<script src="nonplayablecharacter.js"></script>
+
+<body><script>
+require(['tquery.grassground', 'tquery.minecraft'], function(){
+	var world	= tQuery.createWorld().boilerplate().start();
+	var object	= tQuery.createTorus().addTo(world);
+
+	var ground	= tQuery.createGrassGround({
+		textureRepeatX	: 5,
+		textureRepeatY	: 5,
+	}).addTo(world)
+		.scale(20);
+
+
+	var bot	= new NonPlayableChar();
+	bot.character().addTo(world);
+	
+	world.hook(function(delta, now){
+		bot.update();
+	})
+});
+</script></body>

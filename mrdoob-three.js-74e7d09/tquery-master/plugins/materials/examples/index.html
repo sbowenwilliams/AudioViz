@@ -1,0 +1,20 @@
+<!doctype html><title>Minimal tQuery Page</title>
+<script src="../../../build/tquery-bundle.js"></script>
+<body><script>
+	var world	= tQuery.createWorld().boilerplate().start();
+
+	tQuery.createAmbientLight().addTo(world).color(0x444444);
+	tQuery.createDirectionalLight().addTo(world).position(1,1,-1).color(0xFFFFFF);
+	tQuery.createDirectionalLight().addTo(world).position(-1,1,1).color(0xffffff).intensity(1);
+
+	var url		= "../../assets/images/water.jpg";
+	var object	= tQuery.createTorus().addTo(world)
+		//.setLambertMaterial().ambient(0x444444).color(0xFFffff).map(url).back()
+		//.setPhongMaterial().ambient(0x444444).color(0xFF88FF).back()
+		.setBasicMaterial().wireframe(true).wireframeLinewidth(1).color(0x000000).back()
+		
+	var object	= tQuery.createCylinder(0.05, 0.05, 1, 10, 8).addTo(world)
+		.setLambertMaterial().ambient(0x444444).color(0xFFffff).map(url).back()
+		.geometry().smooth().back()
+	
+</script></body>

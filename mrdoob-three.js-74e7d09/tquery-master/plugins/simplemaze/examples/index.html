@@ -1,0 +1,33 @@
+<!doctype html><title>Minimal tQuery Page</title>
+<script src="../../../build/tquery-bundle.js"></script>
+
+<script src="../tquery.simplemaze.js"></script>
+
+<body><script>
+	var world	= tQuery.createWorld().boilerplate().start();
+	var object	= tQuery.createTorus().addTo(world);
+
+	// var controls	= new THREE.FirstPersonControls( world.tCamera() );
+	// controls.movementSpeed	= 10;
+	// controls.lookSpeed	= 0.06;
+	// controls.lookVertical	= true;
+	// controls.constrainVertical	= true;
+	// controls.verticalMin	= 1.1;
+	// controls.verticalMax	= 2.2;
+	// world.setCameraControls(controls)
+
+	var maze	= new tQuery.SimpleMaze({
+		map	: [
+			'*********',
+			'*   *   *',
+			'*  ** ***',
+			'*       *',
+			'***     *',
+			'*       *',
+			'*********'
+		]
+	}).addTo(world);
+	
+
+	
+</script></body>

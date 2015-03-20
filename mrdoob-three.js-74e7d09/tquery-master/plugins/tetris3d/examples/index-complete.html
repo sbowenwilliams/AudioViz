@@ -1,0 +1,284 @@
+<!doctype html><title>Minimal tQuery Page</title>
+<script src="../../../build/tquery-bundle-require.js"></script>
+<script src="../vendor/webaudio-bundle.js"></script>
+<body><script>
+/**
+ * texture on piece
+ * 
+ * light
+ * * point light
+ * * directional light
+ * * animated ones
+ * 
+ * shadow
+ * 
+ * sound
+ */
+require(['tquery.keyboard', 'tquery.lightsaber', 'tquery.shadowmap'], function(){
+	var world	= tQuery.createWorld().boilerplate().start();
+	
+	// enable sound
+	var sounds	= {};
+	if( WebAudio.isAvailable ){
+		world.enableWebAudio();
+		//sounds.collision	= tQuery.createSound().load('../sounds/checkpoint.wav');
+		sounds.soundTrack	= tQuery.createSound().load('../sounds/techno.mp3', function(sound){
+			sound.loop(true).play();
+		});
+	}
+
+	//////////////////////////////////////////////////////////////////////////	
+	//	Constants							//
+	//////////////////////////////////////////////////////////////////////////	
+	var gridW	= 7;
+	var gridH	= 11;
+	var gridD	= 7;
+
+	// world.removeCameraControls();
+	// world.tCamera().position.x	= (gridW+2)/2;
+	// world.tCamera().position.y	= 20;
+	// world.tCamera().position.z	= (gridD+2)/2;
+
+	world.tCamera().rotation.x	= -Math.PI/2;
+	
+	
+	var pieces	= {
+		'L'	: [
+			{
+				x	: 0, 
+				y	: 0,
+				z	: 0
+			},
+			{
+				x	: 1, 
+				y	: 0,
+				z	: 0
+			},
+			{
+				x	: -1, 
+				y	:  0,
+				z	:  0
+			},
+			{
+				x	: -1, 
+				y	: -1,
+				z	:  0
+			},
+		]
+	};
+
+	//////////////////////////////////////////////////////////////////////////	
+	//	Start								//
+	//////////////////////////////////////////////////////////////////////////	
+
+	// add lights
+	tQuery.createAmbientLight().addTo(world)
+		.color(0x444444);
+
+	var lightDir0	= tQuery.createDirectionalLight().addTo(world)
+		.position(1,1,-1).color(0xFFFFFF);
+		
+	world.hook(function(delta, now){
+		if( sounds.soundTrack ){
+			var amplitude	= sounds.soundTrack.amplitude();
+			var intensity	= Math.max(amplitude - 0.6, 0);
+			lightDir0.intensity( intensity*10 );
+		}
+	});
+
+	var lightDir1	= tQuery.createDirectionalLight().addTo(world)
+		.position(1,1,-1)
+		.color(0xFFFFFF);
+	world.hook(function(delta, now){
+		var angle	= now * Math.PI*2 / 4;
+		lightDir1.positionX( Math.cos(angle)*3 )
+		lightDir1.positionY( Math.sin(angle*1.4)*3 )
+		lightDir1.positionZ( Math.sin(angle*3)*3 );
+	});
+
+	var saber	= tQuery.createLightSaber().addTo(world);
+	world.hook(function(delta, now){
+		saber.object3D().get(0).position.copy( lightDir1.get(0).position );
+		var target	= new THREE.Vector3(0, 0, 0);
+		saber.object3D().get(0).lookAt(target)
+	});
+	
+	
+
+
+
+	initShell();
+	
+	var contentArr	= initContentArr();
+	createMeshContentArr(contentArr).addTo(world);
+	
+	var pieceL	= initPiece('L').addTo(world)
+		.rotateZ(Math.PI/2);
+		
+
+	// handle keyboard to move the piece
+	var actionable	= true;
+	world.hook(function(delta, now){
+		var keyboard	= tQuery.keyboard();
+		// TODO fixme when tQuery.keyboard() get events
+		if( !actionable ){
+			actionable	= !(keyboard.pressed('left')
+				|| keyboard.pressed('right') 
+				|| keyboard.pressed('up')
+				|| keyboard.pressed('down')
+				|| keyboard.pressed('space') );
+			return;
+		}
+		actionable	= !(keyboard.pressed('left')
+				|| keyboard.pressed('right') 
+				|| keyboard.pressed('up')
+				|| keyboard.pressed('down')
+				|| keyboard.pressed('space')
+				);
+
+
+		var oldPosition	= pieceL.get(0).position.clone();
+		var oldRotation	= pieceL.get(0).rotation.clone();
+		
+		// make the piece move down
+		pieceL.translateY( -3 * delta );
+	
+		if( keyboard.pressed('left') )	pieceL.translateX(-1);
+		if( keyboard.pressed('right') )	pieceL.translateX(+1);
+		if( keyboard.pressed('up') )	pieceL.translateZ(-1);
+		if( keyboard.pressed('down') )	pieceL.translateZ(+1);
+		if( keyboard.pressed('space') )	pieceL.rotateZ(Math.PI/2);
+
+		// test collision with contentArr
+		var pieceId	= 'L';
+		var collide	= collisionPiece(contentArr,
+					Math.floor(pieceL.positionX()),
+					Math.floor(pieceL.positionY()),
+					Math.floor(pieceL.positionZ()),
+					pieceId
+					);
+		// if the piece collides, go back
+		if( collide === true ){
+			sounds.collision	&& sounds.collision.play()
+			pieceL.get(0).position.copy( oldPosition )
+			pieceL.get(0).rotation.copy( oldRotation )
+		}
+	});
+	
+	
+	// set original position
+	pieceL.positionX( Math.floor((gridW+2)/2) )
+	pieceL.positionY( gridH )
+	pieceL.positionZ( Math.floor((gridD+2)/2) )
+
+	function initPiece(pieceId){
+		var piece	= pieces[pieceId];
+		console.assert(piece);
+		var container	= tQuery.createObject3D();
+	
+		var url		= "../../assets/images/water.jpg";
+		var color	= new THREE.Color(0x888888 * Math.random() + 0x888888)
+		piece.forEach(function(coord){
+			tQuery.createCube(1,1,1).addTo(container)
+				.geometry()
+					.translate(coord.x, coord.y, coord.z)
+					.back()
+				.setLambertMaterial()
+					.ambient(0x444444)
+					.color(color)
+					.map(url)
+					.back()
+
+		})
+		return container;
+	}
+	
+	function initShell(){
+		var sides	= { px: true, nx: true, py: false, ny: true, pz: true, nz: true };
+		tQuery.createCube( gridW, gridH, gridD, gridW, gridH, gridD, undefined, sides)
+			.addTo(world)
+			.setBasicMaterial()
+				.wireframe(true)
+				.color(0x000000)
+				.back()
+			.geometry()
+				.translateY(+5)
+				.back()
+			.translateX( Math.floor(gridW/2+1))
+			.translateY( 1)
+			.translateZ( Math.floor(gridD/2+1))
+	
+	};
+	function collisionPiece(contentArr, x, y, z, pieceId){
+		var piece	= pieces[pieceId];
+		console.assert(piece);
+		var collide	= false;
+		piece.forEach(function(coord){
+			collide	= collide | collisionDot(contentArr, x + coord.x, y + coord.y, z + coord.z);
+		});
+		return collide ? true : false;
+	}
+	function collisionDot(contentArr, x, y, z){
+		if( x < 0 || x >= gridW+2 )	return true;
+		if( y < 0 || y >= gridH+2 )	return true;
+		if( z < 0 || z >= gridD+2 )	return true;
+		return contentArr[x][y][z] !== 0 ? true : false;
+	}
+
+	function createMeshContentArr(contentArr){
+		var container	= tQuery.createObject3D();
+		container.addClass('contentArr');
+		// for(var x = 0; x < gridW+2; x++){
+		// 	for(var y = 0; y < gridH+2; y++){
+		// 		for(var z = 0; z < gridD+2; z++){
+		for(var x = 1; x < gridW+1; x++){
+			for(var y = 1; y < gridH+1; y++){
+				for(var z = 1; z < gridD+1; z++){
+					if( contentArr[x][y][z] === 1 ){
+						tQuery.createCube(1,1,1)
+							.addTo(container)
+							.translate(x, y, z)			
+					}
+				}
+			}
+		}
+		return container;
+	}
+	
+	function initContentArr(){
+		// allocation of the array
+		var arr	= new Array(gridW + 2);
+		for(var x = 0; x < gridW+2; x++){
+			arr[x]	= new Array(gridH+2)
+			for(var y = 0; y < gridH+2; y++){
+				arr[x][y]	= new Array(gridD+2);
+				for(var z = 0; z < gridD+2; z++){
+					arr[x][y][z]	= 0;
+				}
+			}
+		}
+		// build walls
+		for(var x = 0; x < gridW+2; x++){
+			for(var y = 0; y < gridH+2; y++){
+				for(var z = 0; z < gridD+2; z++){
+					// negX
+					if( x === 0 )	arr[x][y][z]	= 1;
+
+					// posX
+					if( x === gridW+1 )	arr[x][y][z]	= 1;
+
+					// negY
+					if( y === 0 )	arr[x][y][z]	= 1;
+
+					// negZ
+					if( z === 0 )	arr[x][y][z]	= 1;
+
+					// posZ
+					if( z === gridD+1 )	arr[x][y][z]	= 1;
+				}
+			}
+		}
+		return arr;
+	}
+});
+</script></body>
