@@ -24,6 +24,19 @@ def demo():
     beats = beat_tracker.getBeats()
     print "READY TO RENDER"	
     return render_template('demo.html', data_ca=chroma_amps, data_b=beats)
+@app.route('/demoDMX')
+def demoDMX():
+    chroma_amps = chroma_amp.getChromaAmps()
+    beats = beat_tracker.getBeats()
+    print "READY TO RENDER"	
+    return render_template('demo.html', data_ca=chroma_amps, data_b=beats)
+@app.route('/demoHAIM')
+def demoHAIM():
+    chroma_amps = chroma_amp.getChromaAmps()
+    beats = beat_tracker.getBeats()
+    print "READY TO RENDER"	
+    return render_template('demo.html', data_ca=chroma_amps, data_b=beats)
+
 
 
 if __name__ == '__main__':

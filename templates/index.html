@@ -3,7 +3,15 @@
   <head>
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
           rel="stylesheet">
+<link type="text/css" rel="stylesheet" href="/static/css/font-awesome-4.0.1.min.css" />
+<link type="text/css" rel="stylesheet" href="/static/css/bootstrap-3.0.0.min.css">
+<link type="text/css" rel="stylesheet" href="/static/css/bootstrap-theme-3.0.0.min.css" />
+<link type="text/css" rel="stylesheet" href="/static/css/layout.main.css" />
+<link type="text/css" rel="stylesheet" href="/static/css/main.css" />
+<link type="text/css" rel="stylesheet" href="/static/css/main.responsive.css" />
+<link type="text/css" rel="stylesheet" href="/static/css/main.quickfix.css" />
   </head>
+
     <style>
     .header{
       text-align: center;
@@ -36,7 +44,16 @@
         <h4>Dept. of Electrical Engineering &amp; Computer Science | Northwestern University</h4>
         <hr/>
       </div>
-      <h2 style="text-align:center"><a target="_blank" href="/demo">Play the demo</a></h2>
+      <div style="margin: 0 auto; width: 656px; text-align: center;">
+      <button onclick="location.href='/demo'">
+     The XX Demo</button>
+     <button onclick="location.href='/demoDMX'">
+     DMX Demo</button>
+     <button onclick="location.href='/demoHAIM'">
+     HAIM Demo</button>
+     </div>
+      <!-- <h2 style="text-align:center"><a target="_blank" href="/demo">Play the XX demo</a> <br><a target="_blank" href="/demo">Play the DMX demo</a> <br><a target="_blank" href="/demo">Play the HAIM demo</a></h2>
+     -->
       <div class="synopsis">
         <h3>Motivations</h3>
         <p>We want to create an interactive visual experience that is dynamically generated from audio files or music. Music visualization is useful for a number of different reasons, but most modern visualizers solely focus on the entertainment aspect. We aim to provide a layer of education and musical analysis not offered in other current music visualizers. The project is not entirely practical, but it does serve an entertainment purpose that will help users look at songs they enjoy in a new way. The visual interpretations of songs they are familiar with will draw focus to components of the song (beats per minute, pitch variation, etc.) that may not have been of much interest or understanding before. Current systems do not lend themselves to easy recognition of complex audio features; our project will make those more accessible through a visual experience.</p>
