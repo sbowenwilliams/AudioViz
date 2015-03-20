@@ -1,4 +1,8 @@
 import os
+
+import beat_tracker
+import chroma_amp
+
 # We'll render HTML templates and access data sent by POST
 # using the request object from flask. Redirect and url_for
 # will be used to redirect the user once the upload is done
@@ -25,7 +29,9 @@ def allowed_file(filename):
 # value of the operation
 @app.route('/')
 def index():
-    return render_template('index.html')
+    chroma_amps = chroma_amp.getChromaAmps()
+    beats = beat_tracker.getBeats()
+    return render_template('index.html', data_ca=chroma_amps, data_b=beats)
 
 
 # Route that will process the file upload
