@@ -104,6 +104,10 @@
             "{{ url_for('static', filename='audiofiles/haim_foreground.wav') }}",
             "{{ url_for('static', filename='audiofiles/haim_background.wav') }}",
           {% endif %}
+          {% if artist == 4 %}
+            "{{ url_for('static', filename='audiofiles/babygotback_foreground.wav') }}",
+            "{{ url_for('static', filename='audiofiles/babygotback_background.wav') }}",
+          {% endif %}
           ],
           finishedLoading
           );

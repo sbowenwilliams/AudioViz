@@ -46,6 +46,12 @@ def demoHAIM():
     print "READY TO RENDER"	
     return render_template('demo.html', data_ca=chroma_amps, data_b=beats, artist=3)
 
+@app.route('/MYANACONDADONT')
+def demoANACONDA():
+    chroma_amps = chroma_amp.getAnacondaChromaAmps()
+    beats = beat_tracker.getAnacondaBeats()
+    print "READY TO RENDER"	
+    return render_template('demo.html', data_ca=chroma_amps, data_b=beats, artist=4)
 
 if __name__ == '__main__':
   port = int(os.environ.get('PORT',5000))
