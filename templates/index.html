@@ -1,401 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>three.js canvas - particles - waves</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				background-color: #000000;
-				margin: 0px;
-				overflow: hidden;
-			}
-
-			a {
-				color:#0078ff;
-			}
-		</style>
-	</head>
-	<body>
-  <script src="{{ url_for('static', filename='build/three.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/Detector.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/renderers/Projector.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/renderers/CanvasRenderer.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/libs/stats.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='buffer-loader.js') }}"></script>
-  <script> 
-      var beats = {{ data_b }};
-      var allData = {{ data_ca }}
-
-      var SEPARATION = 60, AMOUNTX = 32, AMOUNTY = 20;
-
-      var container, stats;
-      var camera, scene, renderer;
-
-      var particles, particle, count = 0;
-
-      var mouseX = 0, mouseY = 0;
-
-      //Music stuff
-      //don't play source, play fourground and background simulataneously
-      //2 scriptprocnodes, 1 for for, 1 for back
-      //ctx->src->script processor node(onaudiohandler -> function)->destination->connect
-      var context;
-      var text, group;
-      var source1;
-      var sourceAudioBuffer = null;
-      var bufferLoader;
-      var analyser = null;
-      var bufferLength;
-      var dataArray;
-      //window.addEventListener('load', initContext, false);
-      window.onload = initContext;
-      //initContext();
-
-      var currentScale = 12.0;
-      var loaded = false;
-      var bpm = 130.0;
-      var currentTime = 0;
-      var currentTimeOffset = 0;
-      var currentBeat = 0;
-      var currentPitch = 0;
-      var pitchName = 'A';
-    
-      //sphere stuff
-      var r = 100, currentSphereColor = 0x0000ff;//[0, 0, 0];
-
-      var windowHalfX = window.innerWidth / 2;
-      var windowHalfY = window.innerHeight / 2;
-
-      init();
-      animate();
-
-
-      function initContext(){
-        try {
-          window.AudioContext = window.AudioContext || window.webkitAudioContext;
-          context = new AudioContext();
-        }
-        catch(e) {
-          alert('Web Audio API is not supported in this browser');
-        }
-        bufferLoader = new BufferLoader(
-          context,
-          [
-          //'https://dl.dropboxusercontent.com/u/83822475/cmaj-dmin-gmaj-cmaj.wav?dl=0',//chords
-          //'https://dl.dropboxusercontent.com/s/uoltta6sf3n649z/Thunderclap.mp3?dl=0',//thunder
-          'https://dl.dropboxusercontent.com/u/83822475/VCR.mp3?dl=0',
-          ],
-          finishedLoading
-          );
-        bufferLoader.load();
-        analyser = context.createAnalyser();
-        analyser.fftSize = 2048;
-        bufferLength = analyser.frequencyBinCount;
-        dataArray = new Uint8Array(bufferLength);
-        analyser.getByteTimeDomainData(dataArray);
-        console.log('end of initContext');
-      }
-
-      function finishedLoading(bufferList){
-        //create sources and play them
-        console.log('finished loading');
-        source1 = context.createBufferSource();
-        source1.buffer = bufferList[0];
-        source1.connect(context.destination);
-        source1.start(0);
-        currentTime = 0;
-        currentTimeOffset = context.currentTime;
-        loaded = true;
-        //currenttime%length of track
-      }
-
-      function init() {
-        container = document.createElement( 'div' );
-        document.body.appendChild( container );
-
-        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-        camera.position.z = 1000;
-        camera.position.y = 1000;
-
-        scene = new THREE.Scene();
-
-        //sphere stuff
-        var i, line, vertex1, vertex2, sphereMaterial, p,
-          parameters = [ [ 0.25, 0xff7700, 1, 2 ], [ 0.5, 0xff9900, 1, 1 ], [ 0.75, 0xff8800, 0.75, 1 ], [ 1, 0xff5500, 0.5, 1 ]];
-
-        sphereGeo = new THREE.Geometry();
-
-        for ( i = 0; i < 500; i ++ ) {
-
-          var vertex1 = new THREE.Vector3();
-          vertex1.x = Math.random() * 2 - 1;
-          vertex1.y = Math.random() * 2 - 1;
-          vertex1.z = Math.random() * 2 - 1;
-          vertex1.normalize();
-          vertex1.multiplyScalar( r );
-          vertex2 = vertex1.clone();
-          vertex2.multiplyScalar( Math.random() * 0.09 + 1 );
-
-          sphereGeo.vertices.push( vertex1 );
-          sphereGeo.vertices.push( vertex2 );
-
-        }
-
-        for( i = 0; i < parameters.length; ++ i ) {
-
-          p = parameters[ i ];
-
-          sphereMaterial = new THREE.LineBasicMaterial( { color: p[ 1 ], opacity: p[ 2 ], linewidth: p[ 3 ] } );
-
-          line = new THREE.Line( sphereGeo, sphereMaterial, THREE.LinePieces );
-          line.scale.x = line.scale.y = line.scale.z = p[ 0 ];
-          line.originalScale = p[ 0 ];
-          line.rotation.y = Math.random() * Math.PI;
-          line.position.y += 425;
-          line.updateMatrix();
-          scene.add( line );
-
-        }
-
-
-        //ground grid stuff
-        particles = new THREE.Geometry();
-
-        var PI2 = Math.PI * 2;
-        var colors = [];
-        for( var i = 0; i < AMOUNTX; i++ ) {
-
-            // random color
-            colors[i] = new THREE.Color();
-            if(i%2 == 0)
-              colors[i].setHSL( Math.random(), 1.0, 0.5 );
-            else
-              colors[i].setHSL( 0.2, 1.0, 0.5);
-
-        }
-        particles.colors = colors;
-        var dotMaterial = new THREE.SpriteCanvasMaterial( {
-
-          color:0xAA33FF,
-          program: function ( context ) {
-
-            context.beginPath();
-            context.arc( 0, 0, 0.5, 0, PI2, true );
-            context.fill();
-
-          }
-
-        } );
-
-        var i = 0;
-
-        for ( var ix = 0; ix < AMOUNTX; ix ++ ) {
-
-          for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
-            dotMaterial.color = (colors[ix]);
-            particle = particles[ i ++ ] = new THREE.Sprite( dotMaterial );
-            particle.position.x = ix * SEPARATION - ( ( AMOUNTX * SEPARATION ) / 2 );
-            particle.position.z = iy * SEPARATION - ( ( AMOUNTY * SEPARATION ) / 2 );
-            scene.add( particle );
-
-          }
-
-        }
-
-
-        renderer = new THREE.CanvasRenderer();
-        renderer.setPixelRatio( window.devicePixelRatio );
-        renderer.setSize( window.innerWidth, window.innerHeight );
-        container.appendChild( renderer.domElement );
-
-        stats = new Stats();
-        stats.domElement.style.position = 'absolute';
-        stats.domElement.style.top = '0px';
-        container.appendChild( stats.domElement );
-
-        document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-        document.addEventListener( 'touchstart', onDocumentTouchStart, false );
-        document.addEventListener( 'touchmove', onDocumentTouchMove, false );
-
-        //RENDERER UPDATE
-        renderer.ontimeupdate = function() {updateTime()};
-
-        window.addEventListener( 'resize', onWindowResize, false );
-
-      }
-
-      function onWindowResize() {
-
-        windowHalfX = window.innerWidth / 2;
-        windowHalfY = window.innerHeight / 2;
-
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-
-        renderer.setSize( window.innerWidth, window.innerHeight );
-
-      }
-
-      //DONT NORMALIZE REPPIT AUDIO
-
-      function onDocumentMouseMove( event ) {
-
-        mouseX = event.clientX - windowHalfX;
-        mouseY = event.clientY - windowHalfY;
-
-      }
-
-      function onDocumentTouchStart( event ) {
-
-        if ( event.touches.length === 1 ) {
-
-          event.preventDefault();
-
-          mouseX = event.touches[ 0 ].pageX - windowHalfX;
-          mouseY = event.touches[ 0 ].pageY - windowHalfY;
-
-        }
-
-      }
-
-      function onDocumentTouchMove( event ) {
-
-        if ( event.touches.length === 1 ) {
-
-          event.preventDefault();
-
-          mouseX = event.touches[ 0 ].pageX - windowHalfX;
-          mouseY = event.touches[ 0 ].pageY - windowHalfY;
-
-        }
-
-      }
-
-      //
-
-      function animate() {
-        requestAnimationFrame( animate );
-        //  analyser.getByteFrequencyData(frequencyData);
-        render();
-        stats.update();
-
-      }
-
-      function render() {
-        if(!loaded)
-          return;
-        currentTime = context.currentTime-(currentTimeOffset-0.08);//%(source1.buffer.duration/source1.buffer.sampleRate);
-        //console.log(currentTime);
-
-        analyser.getByteTimeDomainData(dataArray);
-
-        camera.position.x += ( mouseX - camera.position.x ) * .05;
-        camera.position.y += ( - mouseY - camera.position.y ) * .05 + 20;
-        camera.lookAt( scene.position );
-
-        var i = 0;
-        if(beats[currentBeat]-currentTime<=0.01){
-          currentScale = 16.0;
-          currentBeat++;
-        }
-        else{
-          currentScale *= 11/12;
-        }
-        for ( var ix = 0; ix < AMOUNTX; ix ++ ) {
-
-          for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
-
-            particle = particles[ i++ ];
-            //particle.position.y = //( Math.sin( ( ix + count ) * 0.3 ) * 50 ) + //Makes Waves
-            //  ( Math.sin( ( iy + count ) * 0.5 ) * 50 );
-            particle.position.y =Math.sin((ix + currentTime*10) * 0.2) * 50; //dataArray[ix*iy];//Math.sin((ix + count) * 0.2) * 50;
-            //console.log(dataArray[i]);
-              particle.scale.x = particle.scale.y = currentScale;
-            //( Math.sin( (currentTime*(bpm*60)))/2 + 1.5 ) * 4 +
-              //( Math.sin( ( currentTime*(bpm*60)))/2 + 1.5 ) * 4;
-
-          }
-
-        }
-
-        //color calculations
-        if(currentPitch != allData.length-1)
-          while(allData[currentPitch+1][0]-currentTime<=0){
-            currentPitch++;
-          }
-        //console.log(currentPitch);
-
-        if(allData[currentPitch][1]==1){currentSphereColor=0xFB00FE;pitchName = 'A';}//A=pink
-        else if(allData[currentPitch][1]==2){currentSphereColor=0x6C006C;pitchName = 'A#/Bb';}//Bb=purple
-        else if(allData[currentPitch][1]==3){currentSphereColor=0x690000;pitchName = 'B';}//B=maroon
-        else if(allData[currentPitch][1]==4){currentSphereColor=0xFA0009;pitchName = 'C';}//C=red
-        else if(allData[currentPitch][1]==5){currentSphereColor=0xFC6A08;pitchName = 'C#/Db';}//C#=orange
-        else if(allData[currentPitch][1]==6){currentSphereColor=0xFFFF0A;pitchName = 'D';}//D=yellow
-        else if(allData[currentPitch][1]==7){currentSphereColor=0x23FF07;pitchName = 'D#/Eb';}//Eb=lime
-        else if(allData[currentPitch][1]==8){currentSphereColor=0x0F7002;pitchName = 'E';}//E=green
-        else if(allData[currentPitch][1]==9){currentSphereColor=0x6C6F03;pitchName = 'F';}//F=gold
-        else if(allData[currentPitch][1]==10){currentSphereColor=0x726E6E;pitchName = 'F#/Gb';}//F#=cyan
-        else if(allData[currentPitch][1]==11){currentSphereColor=0x21FFFF;pitchName = 'G';}//G=sky blue
-        else if(allData[currentPitch][1]==12){currentSphereColor=0x0000FF;pitchName = 'G#/Ab';}//Ab=bluw
-        else {currentSphereColor=0x000000;pitchName = '?';}
-
-        for ( var i = 0; i < scene.children.length; i ++ ) {
-
-          var object = scene.children[ i ];
-
-          if ( object instanceof THREE.Line ) {
-            //if SINGER
-            
-            object.rotation.y = 0.25*count * ( i < 4 ? ( i + 1 ) : - ( i + 1 ) );
-
-            object.material.color.setHex(currentSphereColor);//setRGB(currentSphereColor[0],currentSphereColor[1],currentSphereColor[2]);//setHex(currentSphereColor);//+=(0x020101)/2);
-            if ( i < 5 ){
-              //object.scale.x = object.scale.y = object.scale.z = object.originalScale * (i/5+1) * (1 + 0.15 * Math.sin( 2*count ) );
-              object.scale.x = object.scale.y = object.scale.z = allData[currentPitch][2]/8;
-            }
-
-            //if NOT SINGER
-/*            object.rotation.y = 0.0;
-
-            if ( i < 5 ){
-              if(2*object.scale.x > object.originalScale * (i/5+1) / (1 + 0.15 * 2*count )){
-                console.log('here first');
-                object.scale.x = object.scale.y = object.scale.z = object.originalScale * (i/5+1) / (1 + 0.15 * 2 ) ;
-              }
-              else{
-                console.log('here');
-                object.scale.x = object.scale.y = object.scale.z = object.originalScale/2;
-              }
-            }
-*/
-          }
-
-        }
-
-        renderer.render( scene, camera );
-
-        count += 0.1;
-        //console.log(count);
-
-      }
-
-      function updateTime(){
-        count += renderer.currentTime;
-        console.log(count);
-        console.log('y no here');
-      }
-
-      function componentToHex(c) {
-          var hex = c.toString(16);
-          return hex.length == 1 ? "0" + hex : hex;
-      }
-
-      function rgbToHex(r, g, b) {
-          return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
-      }
-
-
-  </script>
-	</body>
+  <head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
+          rel="stylesheet">
+  </head>
+    <style>
+    .header{
+      text-align: center;
+    }
+    .header > h1{
+      font-size: 72px;
+    }
+    .header > h2{
+      font-style: italic; 
+    }
+    .screenshot{
+      display: block;
+      margin: 0px auto;
+    }
+    img{
+      max-width: 100%;
+      display: block;
+    }
+    .caption{
+      text-align: right;
+      font-style: italic;
+    }
+  </style>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Audio Viz</h1>
+        <h3>Aaron Karp, David Ryan, Sean Bowen-Williams | <a href="mailto:dryan@u.northwestern.edu">Contact</a></h3>
+        <h4>Professor Bryan Pardo | EECS 352: Machine Perception of Music &amp; Audio</h4> 
+        <h4>Dept. of Electrical Engineering &amp; Computer Science | Northwestern University</h4>
+        <hr/>
+      </div>
+      <h2 style="text-align:center"><a target="_blank" href="/demo">Play the demo</a></h2>
+      <div class="synopsis">
+        <h3>Motivations</h3>
+        <p>We want to create an interactive visual experience that is dynamically generated from audio files or music. Music visualization is useful for a number of different reasons, but most modern visualizers solely focus on the entertainment aspect. We aim to provide a layer of education and musical analysis not offered in other current music visualizers. The project is not entirely practical, but it does serve an entertainment purpose that will help users look at songs they enjoy in a new way. The visual interpretations of songs they are familiar with will draw focus to components of the song (beats per minute, pitch variation, etc.) that may not have been of much interest or understanding before. Current systems do not lend themselves to easy recognition of complex audio features; our project will make those more accessible through a visual experience.</p>
+        
+        <h3>Solution</h3>
+        <p>Our program will have pre-prepared audio files that the user can select. Our system will have separated foreground and background of the audio using REPET [4], a Matlab program. This will give us separate foreground and background audio files. From there, we will look at the two files and examine the beat [1] of the background file and the real-time amplitude and pitch tracking [3] on the foreground file. These features are computed using Librosa, a Python library for audio analysis. Each of these components are used as input for our visual representation of the audio. Each audio feature is assigned to an aspect of the visual scene (see Fig. 1). The beat-tracking is shown by changing the size of the yellow spheres. The hovering sphere in the center of the screen changes color based on pitch of the foreground (see Fig. 2) and radius based on amplitude of that same file.</p>
+        
+        <h3>Tools we used</h3>
+        <ul>
+          <li>
+            <a href="https://github.com/bmcfee/librosa/">Librosa</a>, an audio processing library for Python
+          </li>
+          <li>
+            <a href="http://threejs.org/">Three.js</a>, a wrapper for WebGL written in Javascript 
+          </li>
+          <li>
+            <a href="http://music.cs.northwestern.edu/publications/Rafii-Pardo%20-%20REpeating%20Pattern%20Extraction%20Technique%20%28REPET%29%20A%20Simple%20Method%20for%20Music-Voice%20Separation%20-%20TALSP%202013.pdf">REPET</a>, an audio separation tool written in MATLAB
+          </li>
+          <li>
+            <a href="http://flask.pocoo.org/">Flask</a>, a web framework written in Python
+          </li>
+          <li>
+            <a href="http://getbootstrap.com/">Bootstrap</a>, for styling our website
+          </li>
+        </ul>
+        
+        <h3>Results</h3>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="screenshot">
+              <img src="{{ url_for('static', filename='screenshot.png') }}"> 
+              <p class="caption">A screenshot of our project, playing "VCR" by the XX</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+              <img src="{{ url_for('static', filename='beat_tracking.png') }}"> 
+              <img src="{{ url_for('static', filename='chromagram.png') }}"> 
+              <img src="{{ url_for('static', filename='amplitude.png') }}"> 
+              <p class="caption">Standard representations of beat-tracking, chromagrams, and amplitude, respectively</p>
+          </div>
+        </div>
+        <p>We approached this project by first creating test mp3 files that had the features we are looking to extract and represent. After succesfully testing the system with simple given inputs, we began testing commercial songs that have similar characteristics. Judging the quality of our system relied on user feedback. Our main goal was to determine if the different visual elements of the experience are accurately and obviously representative of specific audio features. We ran the program with a preset song and asked the users a set of questions relating to both its visual appeal and each of the features we are representing (e.g., what component of the song did the floating points represent?). These responses were fairly positive in all aspects.</p>
+      </div>
+      <hr/>
+      <h4 style="padding-bottom:80px">Learn more by reading our <a href="{{ url_for('static', filename='abstract.pdf') }}">extended abstract</a></h4>
+    </div>
+  </body>
 </html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js canvas - particles - waves</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+			a {
+				color:#0078ff;
+			}
+		</style>
+	</head>
+	<body>
+    <div style="color:white;position:absolute;left:40%">
+      Foreground<input type="range" min="0" max="100" value="50" oninput="CrossfadeSample.crossfade(this)">Background
+    </div>
+
+  <script src="{{ url_for('static', filename='crossfading.js') }}"></script>
+
+  <script src="{{ url_for('static', filename='build/three.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/Detector.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/renderers/Projector.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/renderers/CanvasRenderer.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/libs/stats.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='buffer-loader.js') }}"></script>
+  <script> 
+      var beats = {{ data_b }};
+      var allData = {{ data_ca }}
+
+      var SEPARATION = 60, AMOUNTX = 32, AMOUNTY = 20;
+
+      var container, stats;
+      var camera, scene, renderer;
+
+      var particles, particle, count = 0;
+
+      var mouseX = 0, mouseY = 0;
+
+      //Music stuff
+      //don't play source, play fourground and background simulataneously
+      //2 scriptprocnodes, 1 for for, 1 for back
+      //ctx->src->script processor node(onaudiohandler -> function)->destination->connect
+      var context;
+      var text, group;
+      var source1, source2, gainNode1, gainNode2;
+      var sourceAudioBuffer = null;
+      var bufferLoader;
+      var analyser = null;
+      var bufferLength;
+      var dataArray;
+      //window.addEventListener('load', initContext, false);
+      window.onload = initContext;
+      //initContext();
+
+      var currentScale = 12.0;
+      var loaded = false;
+      var bpm = 130.0;
+      var currentTime = 0;
+      var currentTimeOffset = 0;
+      var currentBeat = 0;
+      var currentPitch = 0;
+      var pitchName = 'A';
+    
+      //sphere stuff
+      var r = 100, currentSphereColor = 0x0000ff;//[0, 0, 0];
+
+      var windowHalfX = window.innerWidth / 2;
+      var windowHalfY = window.innerHeight / 2;
+
+      init();
+      animate();
+
+
+      function initContext(){
+        try {
+          window.AudioContext = window.AudioContext || window.webkitAudioContext;
+          context = new AudioContext();
+        }
+        catch(e) {
+          alert('Web Audio API is not supported in this browser');
+        }
+        bufferLoader = new BufferLoader(
+          context,
+          [
+          //'https://dl.dropboxusercontent.com/u/83822475/VCR.mp3?dl=0',
+          "{{ url_for('static', filename='audiofiles/VCR_foreground.wav') }}",
+          "{{ url_for('static', filename='audiofiles/VCR_background.wav') }}",
+          ],
+          finishedLoading
+          );
+        bufferLoader.load();
+        analyser = context.createAnalyser();
+        analyser.fftSize = 2048;
+        bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+        analyser.getByteTimeDomainData(dataArray);
+        console.log('end of initContext');
+      }
+
+      function finishedLoading(bufferList){
+        //create sources and play them
+        console.log('finished loading');
+        source1 = context.createBufferSource();
+        source2 = context.createBufferSource();
+        source1.buffer = bufferList[0];
+        source2.buffer = bufferList[1];
+        gainNode1 = context.createGain ? context.createGain() : context.createGainNode();
+        source1.connect(gainNode1);
+        // Connect gain to destination.
+        gainNode1.connect(context.destination);
+        source1.start(0);    
+        gainNode2 = context.createGain ? context.createGain() : context.createGainNode();
+        gainNode2.gain.value = 0;
+        source2.connect(gainNode2);
+        // Connect gain to destination.
+        gainNode2.connect(context.destination);
+        source2.start(0);
+        currentTime = 0;
+        currentTimeOffset = context.currentTime;
+        loaded = true;
+        //currenttime%length of track
+      }
+
+            // Fades between 0 (all source 1) and 1 (all source 2)
+      CrossfadeSample.crossfade = function(element) {
+        var x = parseInt(element.value) / parseInt(element.max);
+        // Use an equal-power crossfading curve:
+        var gain1 = Math.cos(x * 0.5*Math.PI);
+        var gain2 = Math.cos((1.0 - x) * 0.5*Math.PI);
+        gainNode1.gain.value = gain1;
+        gainNode2.gain.value = gain2;
+      };
+
+      CrossfadeSample.toggle = function() {
+        this.playing ? this.stop() : this.play();
+        this.playing = !this.playing;
+      };
+
+      function init() {
+        container = document.createElement( 'div' );
+        document.body.appendChild( container );
+
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+        camera.position.z = 1000;
+        camera.position.y = 1000;
+
+        scene = new THREE.Scene();
+
+        //sphere stuff
+        var i, line, vertex1, vertex2, sphereMaterial, p,
+          parameters = [ [ 0.25, 0xff7700, 1, 2 ], [ 0.5, 0xff9900, 1, 1 ], [ 0.75, 0xff8800, 0.75, 1 ], [ 1, 0xff5500, 0.5, 1 ]];
+
+        sphereGeo = new THREE.Geometry();
+
+        for ( i = 0; i < 500; i ++ ) {
+
+          var vertex1 = new THREE.Vector3();
+          vertex1.x = Math.random() * 2 - 1;
+          vertex1.y = Math.random() * 2 - 1;
+          vertex1.z = Math.random() * 2 - 1;
+          vertex1.normalize();
+          vertex1.multiplyScalar( r );
+          vertex2 = vertex1.clone();
+          vertex2.multiplyScalar( Math.random() * 0.09 + 1 );
+
+          sphereGeo.vertices.push( vertex1 );
+          sphereGeo.vertices.push( vertex2 );
+
+        }
+
+        for( i = 0; i < parameters.length; ++ i ) {
+
+          p = parameters[ i ];
+
+          sphereMaterial = new THREE.LineBasicMaterial( { color: p[ 1 ], opacity: p[ 2 ], linewidth: p[ 3 ] } );
+
+          line = new THREE.Line( sphereGeo, sphereMaterial, THREE.LinePieces );
+          line.scale.x = line.scale.y = line.scale.z = p[ 0 ];
+          line.originalScale = p[ 0 ];
+          line.rotation.y = Math.random() * Math.PI;
+          line.position.y += 425;
+          line.updateMatrix();
+          scene.add( line );
+
+        }
+
+
+        //ground grid stuff
+        particles = new THREE.Geometry();
+
+        var PI2 = Math.PI * 2;
+        var colors = [];
+        for( var i = 0; i < AMOUNTX; i++ ) {
+
+            // random color
+            colors[i] = new THREE.Color();
+            if(i%2 == 0)
+              colors[i].setHSL( Math.random(), 1.0, 0.5 );
+            else
+              colors[i].setHSL( 0.2, 1.0, 0.5);
+
+        }
+        particles.colors = colors;
+        var dotMaterial = new THREE.SpriteCanvasMaterial( {
+
+          color:0xAA33FF,
+          program: function ( context ) {
+
+            context.beginPath();
+            context.arc( 0, 0, 0.5, 0, PI2, true );
+            context.fill();
+
+          }
+
+        } );
+
+        var i = 0;
+
+        for ( var ix = 0; ix < AMOUNTX; ix ++ ) {
+
+          for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
+            dotMaterial.color = (colors[ix]);
+            particle = particles[ i ++ ] = new THREE.Sprite( dotMaterial );
+            particle.position.x = ix * SEPARATION - ( ( AMOUNTX * SEPARATION ) / 2 );
+            particle.position.z = iy * SEPARATION - ( ( AMOUNTY * SEPARATION ) / 2 );
+            scene.add( particle );
+
+          }
+
+        }
+
+
+        renderer = new THREE.CanvasRenderer();
+        renderer.setPixelRatio( window.devicePixelRatio );
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        container.appendChild( renderer.domElement );
+
+        stats = new Stats();
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.top = '0px';
+        container.appendChild( stats.domElement );
+
+        document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+        document.addEventListener( 'touchstart', onDocumentTouchStart, false );
+        document.addEventListener( 'touchmove', onDocumentTouchMove, false );
+
+        //RENDERER UPDATE
+        renderer.ontimeupdate = function() {updateTime()};
+
+        window.addEventListener( 'resize', onWindowResize, false );
+
+      }
+
+      function onWindowResize() {
+
+        windowHalfX = window.innerWidth / 2;
+        windowHalfY = window.innerHeight / 2;
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+      }
+
+      //DONT NORMALIZE REPPIT AUDIO
+
+      function onDocumentMouseMove( event ) {
+
+        mouseX = event.clientX - windowHalfX;
+        mouseY = event.clientY - windowHalfY;
+
+      }
+
+      function onDocumentTouchStart( event ) {
+
+        if ( event.touches.length === 1 ) {
+
+          event.preventDefault();
+
+          mouseX = event.touches[ 0 ].pageX - windowHalfX;
+          mouseY = event.touches[ 0 ].pageY - windowHalfY;
+
+        }
+
+      }
+
+      function onDocumentTouchMove( event ) {
+
+        if ( event.touches.length === 1 ) {
+
+          event.preventDefault();
+
+          mouseX = event.touches[ 0 ].pageX - windowHalfX;
+          mouseY = event.touches[ 0 ].pageY - windowHalfY;
+
+        }
+
+      }
+
+      //
+
+      function animate() {
+        requestAnimationFrame( animate );
+        //  analyser.getByteFrequencyData(frequencyData);
+        render();
+        stats.update();
+
+      }
+
+      function render() {
+        if(!loaded)
+          return;
+        currentTime = context.currentTime-(currentTimeOffset-0.08);//%(source1.buffer.duration/source1.buffer.sampleRate);
+        //console.log(currentTime);
+
+        analyser.getByteTimeDomainData(dataArray);
+
+        camera.position.x += ( mouseX - camera.position.x ) * .05;
+        camera.position.y += ( - mouseY - camera.position.y ) * .05 + 20;
+        camera.lookAt( scene.position );
+
+        var i = 0;
+        if(beats[currentBeat]-currentTime<=0.01){
+          currentScale = 16.0;
+          currentBeat++;
+        }
+        else{
+          currentScale *= 11/12;
+        }
+        for ( var ix = 0; ix < AMOUNTX; ix ++ ) {
+
+          for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
+
+            particle = particles[ i++ ];
+            //particle.position.y = //( Math.sin( ( ix + count ) * 0.3 ) * 50 ) + //Makes Waves
+            //  ( Math.sin( ( iy + count ) * 0.5 ) * 50 );
+            // particle.position.y =Math.sin((ix + currentTime*10) * 0.2) * 50; //dataArray[ix*iy];//Math.sin((ix + count) * 0.2) * 50;
+            //console.log(dataArray[i]);
+              particle.scale.x = particle.scale.y = currentScale;
+            //( Math.sin( (currentTime*(bpm*60)))/2 + 1.5 ) * 4 +
+              //( Math.sin( ( currentTime*(bpm*60)))/2 + 1.5 ) * 4;
+
+          }
+
+        }
+
+        //color calculations
+        if(currentPitch != allData.length-1)
+          while(allData[currentPitch+1][0]-currentTime<=0){
+            currentPitch++;
+          }
+        //console.log(currentPitch);
+
+        if(allData[currentPitch][1]==1){currentSphereColor=0xFB00FE;pitchName = 'A';}//A=pink
+        else if(allData[currentPitch][1]==2){currentSphereColor=0x6C006C;pitchName = 'A#/Bb';}//Bb=purple
+        else if(allData[currentPitch][1]==3){currentSphereColor=0x690000;pitchName = 'B';}//B=maroon
+        else if(allData[currentPitch][1]==4){currentSphereColor=0xFA0009;pitchName = 'C';}//C=red
+        else if(allData[currentPitch][1]==5){currentSphereColor=0xFC6A08;pitchName = 'C#/Db';}//C#=orange
+        else if(allData[currentPitch][1]==6){currentSphereColor=0xFFFF0A;pitchName = 'D';}//D=yellow
+        else if(allData[currentPitch][1]==7){currentSphereColor=0x23FF07;pitchName = 'D#/Eb';}//Eb=lime
+        else if(allData[currentPitch][1]==8){currentSphereColor=0x0F7002;pitchName = 'E';}//E=green
+        else if(allData[currentPitch][1]==9){currentSphereColor=0x6C6F03;pitchName = 'F';}//F=gold
+        else if(allData[currentPitch][1]==10){currentSphereColor=0x726E6E;pitchName = 'F#/Gb';}//F#=cyan
+        else if(allData[currentPitch][1]==11){currentSphereColor=0x21FFFF;pitchName = 'G';}//G=sky blue
+        else if(allData[currentPitch][1]==12){currentSphereColor=0x0000FF;pitchName = 'G#/Ab';}//Ab=bluw
+        else {currentSphereColor=0x000000;pitchName = '?';}
+
+        for ( var i = 0; i < scene.children.length; i ++ ) {
+
+          var object = scene.children[ i ];
+
+          if ( object instanceof THREE.Line ) {
+            //if SINGER
+            
+            object.rotation.y = 0.25*count * ( i < 4 ? ( i + 1 ) : - ( i + 1 ) );
+
+            object.material.color.setHex(currentSphereColor);//setRGB(currentSphereColor[0],currentSphereColor[1],currentSphereColor[2]);//setHex(currentSphereColor);//+=(0x020101)/2);
+            if ( i < 5 ){
+              //object.scale.x = object.scale.y = object.scale.z = object.originalScale * (i/5+1) * (1 + 0.15 * Math.sin( 2*count ) );
+              object.scale.x = object.scale.y = object.scale.z = allData[currentPitch][2]/8;
+            }
+
+            //if NOT SINGER
+/*            object.rotation.y = 0.0;
+
+            if ( i < 5 ){
+              if(2*object.scale.x > object.originalScale * (i/5+1) / (1 + 0.15 * 2*count )){
+                console.log('here first');
+                object.scale.x = object.scale.y = object.scale.z = object.originalScale * (i/5+1) / (1 + 0.15 * 2 ) ;
+              }
+              else{
+                console.log('here');
+                object.scale.x = object.scale.y = object.scale.z = object.originalScale/2;
+              }
+            }
+*/
+          }
+
+        }
+
+        renderer.render( scene, camera );
+
+        count += 0.1;
+        //console.log(count);
+
+      }
+
+      function updateTime(){
+        count += renderer.currentTime;
+        console.log(count);
+        console.log('y no here');
+      }
+
+      function componentToHex(c) {
+          var hex = c.toString(16);
+          return hex.length == 1 ? "0" + hex : hex;
+      }
+
+      function rgbToHex(r, g, b) {
+          return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+      }
+
+
+  </script>
+	</body>
+</html>
