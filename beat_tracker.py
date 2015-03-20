@@ -1,10 +1,10 @@
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
-import csv
+import json
 
 def getBeats():
-	filename = 'audiofiles/VCR0.16.wav'
+	filename = 'audiofiles/VCR.mp3'
 
 	y, sr = librosa.load(filename)
 
@@ -20,6 +20,6 @@ def getBeats():
 	## 4. Convert the frame indices of beat events into timestamps
 	beat_times = librosa.frames_to_time(beat_frames, sr=sr, hop_length=hop_length)
 
-	return beat_times
-
+	return beat_times.tolist()
+	
 getBeats()

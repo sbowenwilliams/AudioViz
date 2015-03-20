@@ -4,7 +4,7 @@ import numpy as np
 import json
 
 def getChromaAmps():
-	filename = 'audiofiles/VCR0.16.wav'
+	filename = 'audiofiles/VCR.mp3'
 
 	y, sr = librosa.load(filename)
 

@@ -8,7 +8,7 @@ import chroma_amp
 # will be used to redirect the user once the upload is done
 # and send_from_directory will help us to send/show on the
 # browser the file that the user just uploaded
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify
 from werkzeug import secure_filename
 
 # Initialize the Flask application
@@ -31,6 +31,9 @@ def allowed_file(filename):
 def index():
     chroma_amps = chroma_amp.getChromaAmps()
     beats = beat_tracker.getBeats()
+
+    print "READY TO RENDER"
+	
     return render_template('index.html', data_ca=chroma_amps, data_b=beats)
 
 

@@ -1,1 +1,0 @@
-obsoleted for threex.poolball
