@@ -1,1 +1,0 @@
-* do i need this ? https://github.com/spite/ccapture.js

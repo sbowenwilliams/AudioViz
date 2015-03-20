@@ -4,20 +4,91 @@
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
           rel="stylesheet">
   </head>
+    <style>
+    .header{
+      text-align: center;
+    }
+    .header > h1{
+      font-size: 72px;
+    }
+    .header > h2{
+      font-style: italic; 
+    }
+    .screenshot{
+      display: block;
+      margin: 0px auto;
+    }
+    img{
+      max-width: 100%;
+      display: block;
+    }
+    .caption{
+      text-align: right;
+      font-style: italic;
+    }
+  </style>
   <body>
     <div class="container">
       <div class="header">
         <h1>Audio Viz</h1>
-        <p>Upload a file</p>
+        <h3>Aaron Karp, David Ryan, Sean Bowen-Williams | <a href="mailto:dryan@u.northwestern.edu">Contact</a></h3>
+        <h4>Professor Bryan Pardo | EECS 352: Machine Perception of Music &amp; Audio</h4> 
+        <h4>Dept. of Electrical Engineering &amp; Computer Science | Northwestern University</h4>
+        <hr/>
+      </div>
+      <div style="text-align:center">
+        <h2 style="display:inline-block;margin-right:20px;position:relative;top:5px;">Demos:</h2>
+        <div style="display:inline-block" class="btn-group-lg" role="group" aria-label="...">
+          <button type="button" class="btn btn-default"><a href="demoXX">the XX</a></button>
+          <button type="button" class="btn btn-default"><a href="demoDMX">DMX</a></button>
+          <button type="button" class="btn btn-default"><a href="demoHAIM">HAIM</a></button>
+        </div>
+      </div>
+      <div class="synopsis">
+        <h3>Motivations</h3>
+        <p>We want to create an interactive visual experience that is dynamically generated from audio files or music. Music visualization is useful for a number of different reasons, but most modern visualizers solely focus on the entertainment aspect. We aim to provide a layer of education and musical analysis not offered in other current music visualizers. The project is not entirely practical, but it does serve an entertainment purpose that will help users look at songs they enjoy in a new way. The visual interpretations of songs they are familiar with will draw focus to components of the song (beats per minute, pitch variation, etc.) that may not have been of much interest or understanding before. Current systems do not lend themselves to easy recognition of complex audio features; our project will make those more accessible through a visual experience.</p>
+        
+        <h3>Solution</h3>
+        <p>Our program will have pre-prepared audio files that the user can select. Our system will have separated foreground and background of the audio using REPET, a Matlab program. This will give us separate foreground and background audio files. From there, we will look at the two files and examine the beat of the background file and the real-time amplitude and pitch tracking on the foreground file. These features are computed using Librosa, a Python library for audio analysis. Each of these components are used as input for our visual representation of the audio. Each audio feature is assigned to an aspect of the visual scene. The beat-tracking is shown by changing the size of the yellow spheres. The hovering sphere in the center of the screen changes color based on pitch of the foreground and radius based on amplitude of that same file.</p>
+        
+        <h3>Tools we used</h3>
+        <ul>
+          <li>
+            <a href="https://github.com/bmcfee/librosa/">Librosa</a>, an audio processing library for Python
+          </li>
+          <li>
+            <a href="http://threejs.org/">Three.js</a>, a wrapper for WebGL written in Javascript 
+          </li>
+          <li>
+            <a href="http://music.cs.northwestern.edu/publications/Rafii-Pardo%20-%20REpeating%20Pattern%20Extraction%20Technique%20%28REPET%29%20A%20Simple%20Method%20for%20Music-Voice%20Separation%20-%20TALSP%202013.pdf">REPET</a>, an audio separation tool written in MATLAB
+          </li>
+          <li>
+            <a href="http://flask.pocoo.org/">Flask</a>, a web framework written in Python
+          </li>
+          <li>
+            <a href="http://getbootstrap.com/">Bootstrap</a>, for styling our website
+          </li>
+        </ul>
+        
+        <h3>Results</h3>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="screenshot">
+              <img src="{{ url_for('static', filename='screenshot.png') }}"> 
+              <p class="caption">A screenshot of our project, playing "VCR" by the XX</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+              <img src="{{ url_for('static', filename='beat_tracking.png') }}"> 
+              <img src="{{ url_for('static', filename='chromagram.png') }}"> 
+              <img src="{{ url_for('static', filename='amplitude.png') }}"> 
+              <p class="caption">Standard representations of beat-tracking, chromagrams, and amplitude, respectively</p>
+          </div>
+        </div>
+        <p>We approached this project by first creating test mp3 files that had the features we are looking to extract and represent. After succesfully testing the system with simple given inputs, we began testing commercial songs that have similar characteristics. Judging the quality of our system relied on user feedback. Our main goal was to determine if the different visual elements of the experience are accurately and obviously representative of specific audio features. We ran the program with a preset song and asked the users a set of questions relating to both its visual appeal and each of the features we are representing (e.g., what component of the song did the floating points represent?). These responses were fairly positive in all aspects.</p>
       </div>
       <hr/>
-      <div>
-
-      <form action="upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file"><br /><br />
-        <input type="submit" value="Upload">
-      </form>
-      </div>
+      <h4 style="padding-bottom:80px">Learn more by reading our <a href="{{ url_for('static', filename='abstract.pdf') }}">extended abstract</a></h4>
     </div>
   </body>
 </html>

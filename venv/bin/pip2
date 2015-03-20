@@ -1,0 +1,11 @@
+#!"/Users/davidryan93/Documents/Northwestern, 2014-15/Winter 2015/EECS 352/Final Project/code/AudioViz/venv/bin/python2.7"
+
+# -*- coding: utf-8 -*-
+import re
+import sys
+
+from pip import main
+
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())

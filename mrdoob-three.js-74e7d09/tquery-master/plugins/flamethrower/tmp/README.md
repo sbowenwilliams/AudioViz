@@ -1,4 +1,0 @@
-demo.flymetothemoon
-===================
-
-demo 'flymetothemoon'
